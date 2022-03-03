@@ -50,6 +50,15 @@ func main() {
 
 	r := gin.Default()
 
+	r.LoadHTMLGlob("*.html")
+	r.GET("/login", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "login.html", gin.H{})
+	})
+
+	r.GET("/success", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "success.html", gin.H{})
+	})
+
 	state := "state-code"
 	conf := &oauth2.Config{
 		ClientID:     os.Getenv("KAKAO_CLIENT_ID"),
@@ -117,11 +126,9 @@ func main() {
 		}
 
 		// do stuff with memberInfo and get token
-
 		fmt.Println(memberInfo)
-		c.JSON(http.StatusOK, gin.H{
-			"token": "token string",
-		})
+		c.SetCookie("token", "new jwt token", 0, "/", "localhost:8080", true, true)
+		c.Redirect(http.StatusFound, "/success")
 	})
 
 	r.Run()

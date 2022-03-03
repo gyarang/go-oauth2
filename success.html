@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>oauth2 login success</title>
+    </head>
+    <body>
+        <div>
+            <p id="token"></p>
+        </div>
+    </body>
+    <script>    
+        function getCookie(cookieName){
+            var cookieValue=null;
+            if(document.cookie){
+                var array=document.cookie.split((escape(cookieName)+'='));
+                if(array.length >= 2){
+                    var arraySub=array[1].split(';');
+                    cookieValue=unescape(arraySub[0]);
+                }
+            }
+            return cookieValue;
+        }
+
+        function setToken() {
+            const token = getCookie('token')
+            const el = document.getElementById('token');
+            el.innerHTML = "토큰: " + token;
+        }
+
+        setToken();
+    </script>
+</html>
