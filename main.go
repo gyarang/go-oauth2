@@ -127,7 +127,7 @@ func main() {
 
 		// do stuff with memberInfo and get token
 		fmt.Println(memberInfo)
-		c.SetCookie("token", "new jwt token", 0, "/", "localhost:8080", true, true)
+		c.SetCookie("token", "tokenLikeString", 3000, "/", "localhost:8080", true, false)
 		c.Redirect(http.StatusFound, "/success")
 	})
 
