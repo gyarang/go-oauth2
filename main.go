@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -8,6 +10,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"golang.org/x/oauth2"
@@ -42,6 +46,16 @@ type KakaoAccount struct {
 	Gender                 string       `json:"gender"`
 }
 
+func RandString(n int) (string, error) {
+	b := make([]byte, n)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(b), nil
+}
+
 func main() {
 	err := godotenv.Load(".env")
 	if err != nil {
@@ -49,6 +63,8 @@ func main() {
 	}
 
 	r := gin.Default()
+	store := cookie.NewStore([]byte("secret"))
+	r.Use(sessions.Sessions("session", store))
 
 	r.LoadHTMLGlob("*.html")
 	r.GET("/login", func(c *gin.Context) {
@@ -59,7 +75,6 @@ func main() {
 		c.HTML(http.StatusOK, "success.html", gin.H{})
 	})
 
-	state := "state-code"
 	conf := &oauth2.Config{
 		ClientID:     os.Getenv("KAKAO_CLIENT_ID"),
 		ClientSecret: os.Getenv("KAKAO_CLIENT_SECRET"),
@@ -71,17 +86,31 @@ func main() {
 	}
 
 	r.GET("/oauth/kakao", func(c *gin.Context) {
-		url := conf.AuthCodeURL(state, oauth2.AccessTypeOffline)
+		state, err := RandString(32)
+		if err != nil {
+			c.JSON(http.StatusForbidden, gin.H{
+				"message": err.Error(),
+			})
+		}
+
+		session := sessions.Default(c)
+		session.Set("oauth2-state", state)
+		session.Save()
+
+		url := conf.AuthCodeURL(state)
 		c.Redirect(http.StatusFound, url)
 	})
 
 	r.GET("/oauth/kakao/callback", func(c *gin.Context) {
-		s := c.Query("state")
-		if s != state {
+		session := sessions.Default(c)
+		state := c.Query("state")
+		if session.Get("oauth2-state") != state {
 			c.JSON(http.StatusForbidden, gin.H{
 				"message": "state code error",
 			})
 		}
+		session.Clear()
+		session.Save()
 
 		// 코드를 통해 인증 서버에서 토큰 획득
 		code := c.Query("code")
